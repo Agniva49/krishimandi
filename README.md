@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🌾 KrishiMandi AI — Crop Price Predictor
 
 > AI-powered platform that forecasts Indian mandi crop prices using Machine Learning,
@@ -408,3 +409,6 @@ For issues or feature requests:
 ---
 
 *Built with ❤️ for Indian farmers — KrishiMandi AI*
+=======
+# krishimandi
+>>>>>>> 9131f72a4064aa82e46075f631baeae29a190737

@@ -1,0 +1,132 @@
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# KrishiMandi AI â€” Full Stack Docker Compose
+# Services:
+#   - mongodb       MongoDB 7.0 (database)
+#   - backend       Spring Boot 3.2 (Java REST API)
+#   - ml_service    FastAPI (Python ML microservice)
+#   - frontend      React (Vite dev / Nginx prod)
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+networks:
+  krishimandi-net:
+    driver: bridge
+
+volumes:
+  mongo_data:
+    driver: local
+  ml_models:
+    driver: local
+
+services:
+
+  # â”€â”€â”€ MongoDB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  mongodb:
+    image: mongo:7.0
+    container_name: krishimandi-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: krishimandi
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-KrishiMandi@2024}
+      MONGO_INITDB_DATABASE: krishimandi
+    volumes:
+      - mongo_data:/data/db
+      - ./docker/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - krishimandi-net
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # â”€â”€â”€ Python ML Microservice â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  ml_service:
+    build:
+      context: ./ml_service
+      dockerfile: Dockerfile
+    container_name: krishimandi-ml
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - MODEL_DIR=/app/models
+    volumes:
+      - ml_models:/app/models
+      - ./ml_service/data:/app/data
+    networks:
+      - krishimandi-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  # â”€â”€â”€ Spring Boot Backend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: krishimandi-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - MONGODB_URI=${MONGODB_URI:-mongodb://krishimandi:KrishiMandi%402024@mongodb:27017/krishimandi?authSource=admin}
+      - JWT_SECRET=${JWT_SECRET:-KrishiMandiJWTSecret2024SuperSecure!@#$$}
+      - ML_SERVICE_URL=http://ml_service:5000
+      - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY:-your_api_key_here}
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://frontend:3000
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      ml_service:
+        condition: service_healthy
+    networks:
+      - krishimandi-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # â”€â”€â”€ React Frontend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=http://localhost:8080
+    container_name: krishimandi-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - krishimandi-net
+
+  # â”€â”€â”€ Mongo Express (DB Admin UI â€” dev only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  mongo-express:
+    image: mongo-express:latest
+    container_name: krishimandi-dbadmin
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: krishimandi
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PASSWORD:-KrishiMandi@2024}
+      ME_CONFIG_MONGODB_URL: ${MONGO_EXPRESS_MONGODB_URL:-mongodb://krishimandi:KrishiMandi%402024@mongodb:27017/}
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD:-admin}
+    depends_on:
+      - mongodb
+    networks:
+      - krishimandi-net
+    profiles:
+      - dev    # Only start with: docker compose --profile dev up

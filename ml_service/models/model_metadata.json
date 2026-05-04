@@ -1,0 +1,29 @@
+{
+  "trained_at": "2026-05-04T08:43:30.041711",
+  "n_samples_train": 34085,
+  "n_samples_test": 6015,
+  "features": [
+    "current_price",
+    "lag_7",
+    "lag_14",
+    "lag_30",
+    "rolling_mean_7",
+    "rolling_mean_14",
+    "rolling_std_7",
+    "month",
+    "quarter",
+    "day_of_week",
+    "week_of_year",
+    "season_code",
+    "state_supply_index",
+    "msp_ratio",
+    "temperature",
+    "rainfall",
+    "humidity",
+    "price_momentum",
+    "price_acceleration"
+  ],
+  "target": "modal_price_next_14d",
+  "metrics": {
+    "linear_regression": {
+      "mae": 

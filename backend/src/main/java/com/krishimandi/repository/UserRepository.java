@@ -1,0 +1,21 @@
+package com.krishimandi.repository;
+
+import com.krishimandi.model.User;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface UserRepository extends MongoRepository<User, String> {
+    Optional<User> findByEmail(String email);
+    boolean existsByEmail(String email);
+
+    @Query("{ 'state': ?0, 'alertsEnabled': true }")
+    List<User> findByStateWithAlertsEnabled(String state);
+
+    @Query("{ 'watchlist': { $in: [?0] } }")
+    List<User> findByWatchlistContaining(String cropName);
+}

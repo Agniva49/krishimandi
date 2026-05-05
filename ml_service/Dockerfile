@@ -30,4 +30,4 @@ EXPOSE 5000
 HEALTHCHECK --interval=15s --timeout=10s --retries=3 \
   CMD curl -f http://localhost:5000/health || exit 1
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000", "--workers", "2"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "10000"]
